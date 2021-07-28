@@ -56,8 +56,8 @@ class Post(models.Model):
         (STATUS_DRAFT, '草稿'),
     )
 
-    def __str__(self):
-        return self.name
+    # def __str__(self):
+    #     return self.name
 
     title = models.CharField(max_length=255, verbose_name="标题")
     desc = models.CharField(max_length=1024, blank=True, verbose_name="摘要")
