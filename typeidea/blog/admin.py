@@ -1,14 +1,26 @@
 from django.contrib import admin
 
 # Register your models here.
+from django.contrib.admin.models import LogEntry
 from django.urls import reverse
 from django.utils.html import format_html
 
+from .adminform import PostAdminForm
 from .models import Category, Tag, Post
+from typeidea.custom_site import custom_site
+
+from typeidea.base_admin import BaseOwnerAdmin
 
 
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class PostInline(admin.TabularInline):
+    fields = ('title', 'desc', 'owner')
+    extra = 1  # 控制额外多几个
+    model = Post
+
+
+@admin.register(Category, site=custom_site)
+class CategoryAdmin(BaseOwnerAdmin):
+    inlines = [PostInline, ]
     list_display = ('name', 'status', 'is_nav', 'created_time', 'post_count')
     fields = ('name', 'status', 'is_nav', 'owner')
 
@@ -22,8 +34,8 @@ class CategoryAdmin(admin.ModelAdmin):
     post_count.short_description = '文章数量'
 
 
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
+@admin.register(Tag, site=custom_site)
+class TagAdmin(BaseOwnerAdmin):
     list_display = ('name', 'status', 'created_time')
     fields = ('name', 'status', 'owner')
 
@@ -44,8 +56,9 @@ class CategoryOwnerFilter(admin.SimpleListFilter):
         return queryset
 
 
-@admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+@admin.register(Post, site=custom_site)
+class PostAdmin(BaseOwnerAdmin):
+    form = PostAdminForm
     list_display = ['title', 'category', 'status', 'created_time', 'owner', 'operator']
     list_display_links = []
 
@@ -81,14 +94,16 @@ class PostAdmin(admin.ModelAdmin):
         }),
         ('额外信息', {
             "classes": ('collapse',),
-            'fields': ('tag', ),
+            'fields': ('tag',),
         })
     )
+
+    filter_horizontal = ('tag',)
 
     def operator(self, obj):
         return format_html(
             '<a href="{}"> 编辑</a>',
-            reverse('admin:blog_post_change', args=(obj.id,))
+            reverse('cus_admin:blog_post_change', args=(obj.id,))
         )
 
     operator.short_description = '操作'
@@ -100,3 +115,15 @@ class PostAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super(PostAdmin, self).get_queryset(request)
         return qs.filter(owner=request.user)
+    #
+    # class Media:
+    #     css = {
+    #         'all': ("https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/css/"
+    #                 "bootstrap.min.css",),
+    #     }
+    #     js = ("https://cdn.bootcss.com/bootstrap/4.0.0-beta.2/js/bootstrap.bundle.js",)
+
+
+@admin.register(LogEntry, site=custom_site)
+class LogEntryAdmin(admin.ModelAdmin):
+    list_display = ['object_repr', 'object_id', 'action_flag', 'user', 'change_message']
